@@ -99,6 +99,7 @@ export class Invalidation extends Resource implements IInvalidation {
       resourceType: 'AWS::CloudFront::Invalidation',
       onUpdate: {
         service: 'CloudFront',
+        action: 'createInvalidation',
         physicalResourceId: PhysicalResourceId.fromResponse('Invalidation.Id'),
         parameters: {
           DistributionId: props.distributionId,
