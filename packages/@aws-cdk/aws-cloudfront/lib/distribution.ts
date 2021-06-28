@@ -11,6 +11,7 @@ import { IKeyGroup } from './key-group';
 import { IOrigin, OriginBindConfig, OriginBindOptions } from './origin';
 import { IOriginRequestPolicy } from './origin-request-policy';
 import { CacheBehavior } from './private/cache-behavior';
+import { Invalidation } from './invalidation';
 
 // v2 - keep this import as a separate section to reduce merge conflict when forward merging with the v2 branch.
 // eslint-disable-next-line
@@ -218,6 +219,14 @@ export interface DistributionProps {
     * @default SecurityPolicyProtocol.TLS_V1_2_2019
     */
   readonly minimumProtocolVersion?: SecurityPolicyProtocol;
+
+    /**
+   * Set of paths to invalidate for distribution or true to invalidate all paths
+   *
+   *
+   * @default - No CloudFront Invalidation.
+   */
+     readonly invalidatePaths?: string[] | boolean;
 }
 
 /**
@@ -310,6 +319,11 @@ export class Distribution extends Resource implements IDistribution {
     this.domainName = distribution.attrDomainName;
     this.distributionDomainName = distribution.attrDomainName;
     this.distributionId = distribution.ref;
+
+    if (props.invalidatePaths) {
+      this.clearEdgeCaches(Array.isArray(props.invalidatePaths) ? props.invalidatePaths : undefined);
+    }
+
   }
 
   /**
@@ -325,6 +339,14 @@ export class Distribution extends Resource implements IDistribution {
     }
     const originId = this.addOrigin(origin);
     this.additionalBehaviors.push(new CacheBehavior(originId, { pathPattern, ...behaviorOptions }));
+  }
+
+  public clearEdgeCaches(invalidationPaths?:string[]):string {
+    const invalidation = new Invalidation(new CoreConstruct(this, 'CloudFrontInvalidationScope'), 'CloudFrontInvalidation', {
+      distributionId: this.distributionId,
+      invalidationPaths
+    });
+    return invalidation.invalidationId;
   }
 
   private addOrigin(origin: IOrigin, isFailoverOrigin: boolean = false): string {
