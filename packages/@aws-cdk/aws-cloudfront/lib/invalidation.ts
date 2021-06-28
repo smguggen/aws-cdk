@@ -1,7 +1,7 @@
 import { IResource, Names, Resource } from '@aws-cdk/core';
-import { Construct } from 'constructs';
 import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from '@aws-cdk/custom-resources';
-import { randomBytes } from 'crypto';
+import { Construct } from 'constructs';
+
 /**
  * Represents a Cloudfront Invalidation
  */
@@ -19,34 +19,25 @@ export interface IInvalidation extends IResource {
   readonly distributionId:string;
 
   /**
-   * A list of the paths in the distribution to invalidate 
+   * A value that you specify to uniquely identify an invalidation request
+   *  CloudFront uses the value to prevent you from accidentally resubmitting
+   * an identical request.
+   * @attribute
+   */
+  readonly callerReference:string;
+
+  /**
+   * The fully qualified URI of the distribution and invalidation batch
+   * request, including the Invalidation ID.
+   * @attribute
+   */
+  readonly location:string;
+
+  /**
+   * A list of the paths in the distribution to invalidate
    * @attribute
    */
   readonly invalidationPaths:string[];
-}
-
-
-/**
- * Attributes needed to reference a Cloudfront Invalidation
- */
- export interface InvalidationAttributes {
-  /**
-   * The ID of the invalidation.
-   * @attribute
-   */
-  invalidationId: string;
-
-  /**
-   * Id of the CloudFront Distribution to associate
-   * @attribute
-   */
-  distributionId:string;
-
-  /**
-   * A list of the paths in the distribution to invalidate 
-   * @default - invalidate all paths: ['/*']
-   */
-  invalidationPaths?:string[];
 }
 
 /**
@@ -59,7 +50,7 @@ export interface InvalidationProps {
   readonly distributionId: string;
 
   /**
-   * A list of the paths in the distribution to invalidate 
+   * A list of the paths in the distribution to invalidate
    * @default - invalidate all paths: ['/*']
    */
   readonly invalidationPaths?: string[];
@@ -81,19 +72,17 @@ export class Invalidation extends Resource implements IInvalidation {
   public readonly invalidationId: string;
   public readonly distributionId: string;
   public readonly invalidationPaths: string[];
-
-  private invalidationName: string
-
+  public readonly callerReference: string;
+  public readonly location: string;
   constructor(scope: Construct, id: string, props: InvalidationProps) {
     super(scope, id);
 
     this.distributionId = props.distributionId;
-    this.invalidationName = props.invalidationName || id;
     this.invalidationPaths = props.invalidationPaths && props.invalidationPaths.length ? props.invalidationPaths : ['/*'];
 
     const resource = new AwsCustomResource(this, 'InvalidationResource', {
       policy: AwsCustomResourcePolicy.fromSdkCalls({
-        resources: AwsCustomResourcePolicy.ANY_RESOURCE
+        resources: AwsCustomResourcePolicy.ANY_RESOURCE,
       }),
       installLatestAwsSdk: true,
       resourceType: 'AWS::CloudFront::Invalidation',
@@ -104,16 +93,26 @@ export class Invalidation extends Resource implements IInvalidation {
         parameters: {
           DistributionId: props.distributionId,
           InvalidationBatch: {
-            CallerReference: this.invalidationName + randomBytes(5).toString('hex'),
+            CallerReference: this.generateName(),
             Paths: {
               Quantity: this.invalidationPaths.length,
-              Items: this.invalidationPaths
-            }
-          }
-        }
-      }
+              Items: this.invalidationPaths,
+            },
+          },
+        },
+      },
     });
 
     this.invalidationId = resource.getResponseField('Invalidation.Id');
+    this.callerReference = resource.getResponseField('Invalidation.InvalidationBatch.CallerReference');
+    this.location = resource.getResponseField('Location');
+  }
+
+  private generateName(): string {
+    const name = Names.uniqueId(this);
+    if (name.length > 20) {
+      return name.substring(0, 20);
+    }
+    return name;
   }
 }
