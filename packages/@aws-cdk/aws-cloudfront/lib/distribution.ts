@@ -7,11 +7,11 @@ import { ICachePolicy } from './cache-policy';
 import { CfnDistribution } from './cloudfront.generated';
 import { FunctionAssociation } from './function';
 import { GeoRestriction } from './geo-restriction';
-import { Invalidation } from './private/invalidation';
 import { IKeyGroup } from './key-group';
 import { IOrigin, OriginBindConfig, OriginBindOptions } from './origin';
 import { IOriginRequestPolicy } from './origin-request-policy';
 import { CacheBehavior } from './private/cache-behavior';
+import { Invalidation } from './private/invalidation';
 
 // v2 - keep this import as a separate section to reduce merge conflict when forward merging with the v2 branch.
 // eslint-disable-next-line
