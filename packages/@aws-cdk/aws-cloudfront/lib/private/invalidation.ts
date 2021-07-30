@@ -1,4 +1,4 @@
-import { IResource, Names, Resource, Lazy } from '@aws-cdk/core';
+import { Names, Resource, Lazy } from '@aws-cdk/core';
 import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from '@aws-cdk/custom-resources';
 import { Construct } from 'constructs';
 
