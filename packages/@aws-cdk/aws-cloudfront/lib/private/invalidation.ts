@@ -3,44 +3,6 @@ import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from '
 import { Construct } from 'constructs';
 
 /**
- * Represents a Cloudfront Invalidation
- */
-export interface IInvalidation extends IResource {
-  /**
-   * The ID of the invalidation.
-   * @attribute
-   */
-  readonly invalidationId: string;
-
-  /**
-   * Id of the CloudFront Distribution to associate
-   * @attribute
-   */
-  readonly distributionId:string;
-
-  /**
-   * A value that you specify to uniquely identify an invalidation request
-   *  CloudFront uses the value to prevent you from accidentally resubmitting
-   * an identical request.
-   * @attribute
-   */
-  readonly callerReference:string;
-
-  /**
-   * The fully qualified URI of the distribution and invalidation batch
-   * request, including the Invalidation ID.
-   * @attribute
-   */
-  readonly location:string;
-
-  /**
-   * A list of the paths in the distribution to invalidate
-   * @attribute
-   */
-  readonly invalidationPaths:string[];
-}
-
-/**
  * Properties for creating an Invalidation
  */
 export interface InvalidationProps {
@@ -67,7 +29,7 @@ export interface InvalidationProps {
  *
  * @resource Aws::CloudFormation::CustomResource
  */
-export class Invalidation extends Resource implements IInvalidation {
+export class Invalidation extends Resource {
 
   public readonly invalidationId: string;
   public readonly distributionId: string;

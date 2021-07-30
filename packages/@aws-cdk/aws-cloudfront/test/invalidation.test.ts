@@ -1,6 +1,6 @@
 import '@aws-cdk/assert-internal/jest';
 import { App, Stack } from '@aws-cdk/core';
-import { Invalidation } from '../lib';
+import { Invalidation } from '../lib/private/invalidation';
 
 describe('Invalidation', () => {
   let app: App;

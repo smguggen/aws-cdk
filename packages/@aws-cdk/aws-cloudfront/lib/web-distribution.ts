@@ -10,6 +10,7 @@ import { FunctionAssociation } from './function';
 import { GeoRestriction } from './geo-restriction';
 import { IKeyGroup } from './key-group';
 import { IOriginAccessIdentity } from './origin-access-identity';
+import { Invalidation } from './private/invalidation';
 
 /**
  * HTTP status code to failover to second origin
@@ -732,7 +733,7 @@ export class CloudFrontWebDistribution extends cdk.Resource implements IDistribu
    * @param invalidationPaths the paths at which to clear the edge caches, or undefined to invalidate all paths
    */
   public createInvalidation(invalidationPaths?:string[]):string {
-    const invalidation = new Invalidation(new CoreConstruct(this, 'CloudFrontInvalidationScope'), 'CloudFrontInvalidation', {
+    const invalidation = new Invalidation(cdk.Stack.of(this), 'CloudFrontInvalidation', {
       distributionId: this.distributionId,
       invalidationPaths,
     });

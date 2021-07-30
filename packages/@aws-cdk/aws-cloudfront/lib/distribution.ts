@@ -335,7 +335,7 @@ export class Distribution extends Resource implements IDistribution {
    * @param invalidationPaths the paths at which to clear the edge caches, or undefined to invalidate all paths
    */
   public createInvalidation(invalidationPaths?:string[]):string {
-    const invalidation = new Invalidation(new CoreConstruct(this, 'CloudFrontInvalidationScope'), 'CloudFrontInvalidation', {
+    const invalidation = new Invalidation(Stack.of(this), 'CloudFrontInvalidation', {
       distributionId: this.distributionId,
       invalidationPaths,
     });
