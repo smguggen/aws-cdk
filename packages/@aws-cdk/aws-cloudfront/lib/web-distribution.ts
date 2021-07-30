@@ -727,6 +727,19 @@ export class CloudFrontWebDistribution extends cdk.Resource implements IDistribu
   }
 
   /**
+   * Removes files from CloudFront edge caches before they expire by utilizing the CloudFront Invalidation Construct.
+   *
+   * @param invalidationPaths the paths at which to clear the edge caches, or undefined to invalidate all paths
+   */
+  public createInvalidation(invalidationPaths?:string[]):string {
+    const invalidation = new Invalidation(new CoreConstruct(this, 'CloudFrontInvalidationScope'), 'CloudFrontInvalidation', {
+      distributionId: this.distributionId,
+      invalidationPaths,
+    });
+    return invalidation.invalidationId;
+  }
+
+  /**
    * The logging bucket for this CloudFront distribution.
    * If logging is not enabled for this distribution - this property will be undefined.
    */
