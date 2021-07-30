@@ -1,3 +1,4 @@
+import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from '@aws-cdk/custom-resources';
 import * as certificatemanager from '@aws-cdk/aws-certificatemanager';
 import * as iam from '@aws-cdk/aws-iam';
 import * as lambda from '@aws-cdk/aws-lambda';
@@ -10,7 +11,6 @@ import { FunctionAssociation } from './function';
 import { GeoRestriction } from './geo-restriction';
 import { IKeyGroup } from './key-group';
 import { IOriginAccessIdentity } from './origin-access-identity';
-import { Invalidation } from './private/invalidation';
 
 /**
  * HTTP status code to failover to second origin
@@ -954,12 +954,33 @@ export class CloudFrontWebDistribution extends cdk.Resource implements IDistribu
    *
    * @param invalidationPaths the paths at which to clear the edge caches, or undefined to invalidate all paths
    */
-  public createInvalidation(invalidationPaths?:string[]):string {
-    const invalidation = new Invalidation(cdk.Stack.of(this), 'CloudFrontInvalidation', {
-      distributionId: this.distributionId,
-      invalidationPaths,
+   public createInvalidation(invalidationPaths: string[] = ['/*']): this {
+    let name = Names.uniqueId(this);
+    if (name.length > 20) name = name.substring(0, 20);
+    const res = new AwsCustomResource(this, 'Invalidation', {
+      policy: AwsCustomResourcePolicy.fromSdkCalls({
+        resources: AwsCustomResourcePolicy.ANY_RESOURCE,
+      }),
+      installLatestAwsSdk: true,
+      resourceType: 'Custom::CloudFrontInvalidation',
+      onUpdate: {
+        service: 'CloudFront',
+        action: 'createInvalidation',
+        physicalResourceId: PhysicalResourceId.fromResponse('Invalidation.Id'),
+        parameters: {
+          DistributionId: this.distributionId,
+          InvalidationBatch: {
+            CallerReference: name,
+            Paths: {
+              Quantity: invalidationPaths.length,
+              Items: invalidationPaths,
+            },
+          },
+        },
+      },
     });
-    return invalidation.invalidationId;
+    res.node.addDependency(this);
+    return this;
   }
 
   private toBehavior(input: BehaviorWithOrigin, protoPolicy?: ViewerProtocolPolicy) {

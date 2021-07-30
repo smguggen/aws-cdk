@@ -1,4 +1,5 @@
 import * as acm from '@aws-cdk/aws-certificatemanager';
+import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from '@aws-cdk/custom-resources';
 import * as lambda from '@aws-cdk/aws-lambda';
 import * as s3 from '@aws-cdk/aws-s3';
 import { IResource, Lazy, Resource, Stack, Token, Duration, Names } from '@aws-cdk/core';
@@ -11,7 +12,6 @@ import { IKeyGroup } from './key-group';
 import { IOrigin, OriginBindConfig, OriginBindOptions } from './origin';
 import { IOriginRequestPolicy } from './origin-request-policy';
 import { CacheBehavior } from './private/cache-behavior';
-import { Invalidation } from './private/invalidation';
 
 // v2 - keep this import as a separate section to reduce merge conflict when forward merging with the v2 branch.
 // eslint-disable-next-line
@@ -334,12 +334,33 @@ export class Distribution extends Resource implements IDistribution {
    *
    * @param invalidationPaths the paths at which to clear the edge caches, or undefined to invalidate all paths
    */
-  public createInvalidation(invalidationPaths?:string[]):string {
-    const invalidation = new Invalidation(Stack.of(this), 'CloudFrontInvalidation', {
-      distributionId: this.distributionId,
-      invalidationPaths,
+  public createInvalidation(invalidationPaths: string[] = ['/*']): this {
+    let name = Names.uniqueId(this);
+    if (name.length > 20) name = name.substring(0, 20);
+    const res = new AwsCustomResource(this, 'Invalidation', {
+      policy: AwsCustomResourcePolicy.fromSdkCalls({
+        resources: AwsCustomResourcePolicy.ANY_RESOURCE,
+      }),
+      installLatestAwsSdk: true,
+      resourceType: 'Custom::CloudFrontInvalidation',
+      onUpdate: {
+        service: 'CloudFront',
+        action: 'createInvalidation',
+        physicalResourceId: PhysicalResourceId.fromResponse('Invalidation.Id'),
+        parameters: {
+          DistributionId: this.distributionId,
+          InvalidationBatch: {
+            CallerReference: name,
+            Paths: {
+              Quantity: invalidationPaths.length,
+              Items: invalidationPaths,
+            },
+          },
+        },
+      },
     });
-    return invalidation.invalidationId;
+    res.node.addDependency(this);
+    return this;
   }
 
   private addOrigin(origin: IOrigin, isFailoverOrigin: boolean = false): string {
