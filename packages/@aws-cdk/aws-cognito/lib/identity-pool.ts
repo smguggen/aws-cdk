@@ -21,6 +21,9 @@ import {
   CfnIdentityPoolRoleAttachment,
 } from './cognito.generated';
 import {
+  IdentityPoolFederatedPrincipal
+} from './identity-pool-federated-principal';
+import {
   IUserPoolAuthenticationProvider,
 } from './user-pool-authentication-provider';
 
@@ -725,26 +728,16 @@ export class IdentityPool extends Resource implements IIdentityPool {
   /**
    * Configure Default Roles For Identity Pool
    */
-  private configureDefaultRole(type: string): IRole {
+  private configureDefaultRole(type: 'Authenticated' | 'Unauthenticated'): IRole {
     const name = `${this.id}${type}Role`;
-    const assumedBy = this.configureDefaultGrantPrincipal(type.toLowerCase());
+    const props = {identityPool: this}
+    const assumedBy = type === 'Authenticated' ? IdentityPoolFederatedPrincipal.authenticated(props) :
+      IdentityPoolFederatedPrincipal.unauthenticated(props);
     const role = new Role(this, name, {
       roleName: name,
       description: `Default ${type} Role for Identity Pool ${this.identityPoolName}`,
       assumedBy,
     });
-
     return role;
-  }
-
-  private configureDefaultGrantPrincipal(type: string) {
-    return new FederatedPrincipal('cognito-identity.amazonaws.com', {
-      'StringEquals': {
-        'cognito-identity.amazonaws.com:aud': this.identityPoolId,
-      },
-      'ForAnyValue:StringLike': {
-        'cognito-identity.amazonaws.com:amr': type,
-      },
-    }, 'sts:AssumeRoleWithWebIdentity');
   }
 }
